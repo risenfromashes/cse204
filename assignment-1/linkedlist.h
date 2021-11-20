@@ -148,7 +148,6 @@ private:
         // since last node created is the tail, if the list is non-empty
         assert(new_node != m_head);
         m_tail = new_node;
-        m_tail->next = nullptr;
       }
     }
   }
