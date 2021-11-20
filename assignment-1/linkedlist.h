@@ -16,7 +16,7 @@ template <typename T> class linkedlist : public list<T> {
     node *next;
 
     /* Constructor to create sentinel node */
-    node(std::nullptr_t) : item{}, next(nullptr) {}
+    node(node *next) : item{}, next(next) {}
     /* Constructor to create node with the item to contain */
     node(const T &item, node *next = nullptr) : item(item), next(next) {}
   };
@@ -38,16 +38,127 @@ public:
       : m_head(new node(nullptr)), m_tail(nullptr), m_curr(m_head), m_length(0),
         m_pos(0) {}
 
-  /* List interface implementation. */
+  /* creates list with data from static array */
+  template <size_t N> linkedlist(T const (&items)[N]) : linkedlist() {
+    for (size_t i = 0; i < N; i++) {
+      append(items[i]);
+    }
+  }
 
-  /* Clear contents from the list, making it empty */
-  void clear() override {
+  /* creates list with pointer data */
+  linkedlist(size_t num_items, T const *items)
+      : linkedlist() {
+    for (size_t i = 0; i < num_items; i++) {
+      append(items[i]);
+    }
+  }
+
+  /* Copy construct: copies elements from another list */
+  linkedlist(const linkedlist<T> &other) : m_head(new node(nullptr)) {
+    copy_from(other);
+  }
+
+  /* Move constructor: steals elements from another list */
+  linkedlist(linkedlist<T> &&other)
+      : m_head(new node(other.m_head->next)), m_tail(other.m_tail),
+        m_curr(other.m_curr), m_length(other.m_length), m_pos(other.m_pos) {
+    /* Reset moved from linkedlist to initial empty list */
+    other.m_head->next = other.m_tail = nullptr;
+    other.m_curr = other.m_head;
+    m_length = m_pos = 0;
+  }
+
+  /* Copy assignment: copy elements from another list */
+  linkedlist &operator=(const linkedlist &other) {
+    if (this == &other) {
+      // to handle self-assignment
+      return *this;
+    }
+    delete_elements();
+    copy_from(other);
+    return *this;
+  }
+
+  /* Move assignment: steal elements from another list */
+  linkedlist<T> &operator=(linkedlist<T> &&other) {
+    if (this == &other) {
+      // to handle self-assignment
+      return *this;
+    }
+    // delete current elements and steal everything from other list
+    delete_elements();
+    m_head->next = other.m_head->next;
+    m_tail = other.m_tail;
+    m_curr = other.m_curr;
+    m_length = other.m_length;
+    m_pos = other.m_pos;
+    // reset other list
+    other.m_head->next = other.m_tail = nullptr;
+    other.m_curr = other.m_head;
+    m_length = m_pos = 0;
+    return *this;
+  }
+
+  /* Destructor */
+  ~linkedlist() {
+    delete_elements();
+    delete m_head;
+  }
+
+private:
+  /* helper methods */
+
+  /* delete all the nodes in the list, except the head */
+  void delete_elements() {
     node *p = m_head->next;
     while (p) {
       node *t = p;
       p = p->next;
       delete t;
     }
+  }
+
+  /* Assuming the list is cleared and do not have dangling resources, copy
+   * elements from other list */
+  void copy_from(const linkedlist<T> &other) {
+    m_pos = 0;
+    m_length = other.m_length;
+    // assume the other list may be empty at this point
+    m_head->next = m_tail = nullptr;
+
+    if (m_length == 0) {
+      return;
+    }
+
+    node *old_node = other.m_head;
+    node *new_node = m_head;
+
+    while (old_node) {
+      // runs length+1 times, setting head in 1st iteration, tail at last
+      if (m_pos == other.m_pos) {
+        m_curr = new_node;
+      } else if (m_pos < other.m_pos) {
+        m_pos++;
+      }
+      // create nodes for each old nodes except the old head
+      if ((old_node = old_node->next)) {
+        new_node->next = new node(old_node->item);
+        new_node = new_node->next;
+      } else {
+        // since last node created is the tail, if the list is non-empty
+        assert(new_node != m_head);
+        m_tail = new_node;
+        m_tail->next = nullptr;
+      }
+    }
+  }
+
+public:
+  /* List interface implementation. */
+
+  /* Clear contents from the list, making it empty */
+  void clear() override {
+    delete_elements();
     // reset everything
     m_head->next = m_tail = nullptr;
     // set position at the start
@@ -84,11 +195,12 @@ public:
 
   /* Append an item at the end of list. */
   void append(const T &item) override {
-    // insert after setting position at the end
-    node *curr_node = m_curr;
-    m_curr = m_tail;
-    insert(item);
-    m_curr = curr_node;
+    node *new_node = new node(item, nullptr);
+    if (m_tail) {
+      m_tail->next = new_node;
+    }
+    m_tail = new_node;
+    m_length++;
   }
 
   /* Remove the current item and return it. */

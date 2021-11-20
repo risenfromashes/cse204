@@ -66,24 +66,27 @@ public:
 
   /* copy assignment: copies elements from other list */
   arraylist<T> &operator=(const arraylist<T> &other) {
-    m_capacity = other.m_capacity;
+    destroy_elements();
+    if (m_capacity < other.m_length) {
+      expand();
+    }
     m_length = other.m_length;
     m_pos = other.m_pos;
-    m_data = new T[m_capacity];
     std::copy(other.m_data, other.m_data + other.m_pos, m_data);
     return *this;
   }
 
   /* move assignment: steals elements from other list */
   arraylist<T> &operator=(arraylist<T> &&other) {
-    m_capacity = other.m_capacity;
+    // exchange data and capacity, but setting other empty
+    destroy_elements();
     m_length = other.m_length;
     m_pos = other.m_pos;
-    m_data = other.m_data;
-    other.m_capacity = 0;
-    other.m_length = 0;
-    other.m_pos = 0;
-    other.m_data = nullptr;
+
+    std::swap(m_capacity, other.m_capacity);
+    std::swap(m_data, other.m_data);
+    other.m_pos = other.m_length = 0;
+    return *this;
   }
 
   /* destructor */
@@ -96,14 +99,19 @@ private:
    * and copying data to it */
   void expand() {
     auto old_data = m_data;
-    if (m_capacity == 0) {
-      // in case this arraylist was moved from
-      m_capacity = k_default_capacity;
-    }
     m_capacity *= 2;
     m_data = new T[m_capacity];
     std::copy(m_data, m_data + m_pos, old_data);
     delete[] old_data;
+  }
+
+  /* destruct all elements */
+  void destroy_elements() {
+    for (size_t i = 0; i < m_length; i++) {
+      if constexpr (std::destructible<T>) {
+        m_data[i].~T();
+      }
+    }
   }
 
 public:
@@ -112,12 +120,7 @@ public:
   /* Clears list, destroying all elements and emptying list. Leaves capacity
    * unchanged. */
   void clear() override {
-    /* Destroy all elements. */
-    for (size_t i = 0; i < m_length; i++) {
-      if constexpr (std::destructible<T>) {
-        m_data[i].~T();
-      }
-    }
+    destroy_elements();
     m_pos = m_length = 0;
   }
 
@@ -205,7 +208,8 @@ public:
     return m_data[m_pos];
   }
 
-  /* Search for an item in the list, returns npos ( (size_t) -1 ) if not found. */
+  /* Search for an item in the list, returns npos ( (size_t) -1 ) if not found.
+   */
   size_t search(const T &item) const override {
     for (size_t i = 0; i < m_length; i++) {
       if (m_data[i] == item) {
