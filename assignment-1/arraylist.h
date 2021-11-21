@@ -11,8 +11,9 @@ template <typename T> class arraylist : public list<T> {
   using typename list<T>::size_t;
   using list<T>::npos;
 
-  static constexpr size_t k_default_capacity = 8;
+  static constexpr size_t k_default_chunk_size = 8;
 
+  size_t m_chunk_size;
   size_t m_capacity;
   size_t m_length;
   size_t m_pos;
@@ -21,43 +22,50 @@ template <typename T> class arraylist : public list<T> {
 
 public:
   /* creates empty list */
-  arraylist()
-      : m_capacity(k_default_capacity), m_length(0), m_pos(0),
-        m_data(new T[m_capacity]) {}
+  arraylist(size_t chunk_size = k_default_chunk_size)
+      : m_chunk_size(k_default_chunk_size), m_capacity(m_chunk_size),
+        m_length(0), m_pos(0), m_data(new T[m_capacity]) {}
 
-  /* creates empty list with initial array capacity */
-  arraylist(size_t initial_capacity)
-      : m_capacity(initial_capacity), m_length(0), m_pos(0),
-        m_data(new T[m_capacity]) {}
-
-  /* creates list with data from static array */
+  /* Create list from initializer list */
+  arraylist(std::initializer_list<T> items,
+            size_t chunk_size = k_default_chunk_size)
+      : m_chunk_size(chunk_size), m_capacity(m_chunk_size),
+        m_length(items.size()), m_pos(0) {
+    fit_and_allocate();
+    std::copy(items.begin(), items.end(), m_data);
+  }
+  /* Creates list with data from static array */
   template <size_t N>
-  arraylist(T const (&items)[N], size_t initial_capacity = k_default_capacity)
-      : m_capacity(std::max(initial_capacity, N)), m_length(N), m_pos(0),
-        m_data(new T[m_capacity]) {
+  arraylist(T const (&items)[N], size_t chunk_size = k_default_chunk_size)
+      : m_chunk_size(chunk_size), m_capacity(m_chunk_size), m_length(N),
+        m_pos(0) {
+    fit_and_allocate();
     std::copy(items, items + N, m_data);
   }
 
   /* creates list with pointer data */
   arraylist(size_t num_items, T const *items,
-            size_t initial_capacity = k_default_capacity)
-      : m_capacity(std::max(initial_capacity, num_items)), m_length(num_items),
-        m_pos(0), m_data(new T[m_capacity]) {
+            size_t chunk_size = k_default_chunk_size)
+      : m_chunk_size(chunk_size), m_capacity(m_chunk_size), m_length(num_items),
+        m_pos(0) {
+    fit_and_allocate();
     std::copy(items, items + num_items, m_data);
   }
 
   /* copy constructor: copies elements from other list */
   arraylist(const arraylist<T> &other)
-      : m_capacity(other.m_capacity), m_length(other.m_length),
-        m_pos(other.m_pos), m_data(new T[m_capacity]) {
+      : m_chunk_size(other.m_chunk_size), m_capacity(other.m_capacity),
+        m_length(other.m_length), m_pos(other.m_pos),
+        m_data(new T[m_capacity]) {
     std::copy(other.m_data, other.m_data + other.m_pos, m_data);
   }
 
   /* move constructor: steals elements from other list */
   arraylist(arraylist<T> &&other)
-      : m_capacity(other.m_capacity), m_length(other.m_length),
-        m_pos(other.m_pos), m_data(other.m_data) {
+      : m_chunk_size(other.m_chunk_size), m_capacity(other.m_capacity),
+        m_length(other.m_length), m_pos(other.m_pos), m_data(other.m_data) {
     /* Will resize to default capacity if inserted again */
+    other.m_chunk_size = k_default_chunk_size;
     other.m_capacity = 0;
     other.m_length = 0;
     other.m_pos = 0;
@@ -83,6 +91,7 @@ public:
     m_length = other.m_length;
     m_pos = other.m_pos;
 
+    std::swap(m_chunk_size, other.m_chunk_size);
     std::swap(m_capacity, other.m_capacity);
     std::swap(m_data, other.m_data);
     other.m_pos = other.m_length = 0;
@@ -95,11 +104,20 @@ public:
 private:
   /* helper methods */
 
+  /* Increase capacity by chunk_size until it accomodates length, then allocate
+   * to that capacity */
+  void fit_and_allocate() {
+    while (m_capacity < m_length) {
+      m_capacity += m_chunk_size;
+    }
+    m_data = new T[m_capacity];
+  }
+
   /* expands internal data array size by a factor of 2 by allocating new memory
    * and copying data to it */
   void expand() {
     auto old_data = m_data;
-    m_capacity *= 2;
+    m_capacity += m_chunk_size;
     m_data = new T[m_capacity];
     std::copy(m_data, m_data + m_pos, old_data);
     delete[] old_data;
@@ -126,6 +144,7 @@ public:
 
   /* Inserts element at current position. Expands if necessary. */
   void insert(const T &item) override {
+    assert(m_pos < m_length);
     if (m_length >= m_capacity) {
       expand();
     }
@@ -150,10 +169,7 @@ public:
     if (m_length == 0) {
       throw std::runtime_error("Attempt to remove from an empty list.");
     }
-    if (m_pos >= m_length) {
-      throw std::runtime_error(
-          "Attempt to remove element from after the end of the list.");
-    }
+    assert(m_pos < m_length);
     T ret = m_data[m_pos];
     // shift data to the left
     for (size_t i = m_length - 1; i > m_pos; i--) {
@@ -167,7 +183,7 @@ public:
   inline void moveToStart() override { m_pos = 0; }
 
   /* Set the current position at the end of the list. */
-  inline void moveToEnd() override { m_pos = m_length; }
+  inline void moveToEnd() override { m_pos = m_length - 1; }
 
   /* Move the current position one step left unless already at the beginning. */
   inline void prev() override {
@@ -178,7 +194,7 @@ public:
 
   /* Move the current position one step right unless already at the end. */
   inline void next() override {
-    if (m_pos < m_length) {
+    if (m_pos < m_length - 1) {
       m_pos++;
     }
   }
@@ -191,19 +207,17 @@ public:
 
   /* Set current position. */
   inline void moveToPos(size_t pos) override {
+    if (pos >= m_length) {
+      throw std::runtime_error(
+          "Attempt to move to position beyond the length of the list.");
+    }
     m_pos = pos;
-    if (m_pos > m_length)
-      m_pos = m_length;
   }
 
   /* Return the value of the current element */
   inline T getValue() const override {
     if (m_length == 0) {
       throw std::runtime_error("Attempting to access element from empty list.");
-    }
-    if (m_pos == m_length) {
-      throw std::runtime_error(
-          "Attempting to access element at the end of list.");
     }
     return m_data[m_pos];
   }

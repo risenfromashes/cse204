@@ -1,12 +1,14 @@
 #pragma once
 
+#include <cstddef>
 #include <ostream>
+
 // abstract list interface
 namespace cse204 {
 
 template <typename T> class list {
 protected:
-  typedef unsigned long long int size_t;
+  typedef std::size_t size_t;
   static const size_t npos = (size_t)-1;
 
 public:
@@ -31,12 +33,13 @@ template <typename T>
 std::ostream &operator<<(std::ostream &os, list<T> &list) {
   // remember current position
   size_t prev_pos = list.currPos();
-  for (list.moveToStart(); list.currPos() <= list.length(); list.next()) {
+  for (list.moveToStart();; list.next()) {
     if (prev_pos == list.currPos()) {
       os << "| ";
     }
-    if (list.currPos() < list.length()) {
-      os << list.getValue() << ' ';
+    os << list.getValue() << ' ';
+    if (list.currentPos() == list.length() - 1) {
+      break;
     }
   }
   // restore current position
