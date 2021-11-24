@@ -57,7 +57,7 @@ public:
       : m_chunk_size(other.m_chunk_size), m_capacity(other.m_capacity),
         m_length(other.m_length), m_pos(other.m_pos),
         m_data(new T[m_capacity]) {
-    std::copy(other.m_data, other.m_data + other.m_pos, m_data);
+    std::copy(other.m_data, other.m_data + other.m_length, m_data);
   }
 
   /* move constructor: steals elements from other list */
@@ -74,13 +74,17 @@ public:
 
   /* copy assignment: copies elements from other list */
   arraylist<T> &operator=(const arraylist<T> &other) {
-    destroy_elements();
-    if (m_capacity < other.m_length) {
-      expand();
+    if(this == &other){
+      return *this;
     }
+    destroy_elements();
     m_length = other.m_length;
     m_pos = other.m_pos;
-    std::copy(other.m_data, other.m_data + other.m_pos, m_data);
+    if (m_capacity < other.m_length) {
+      delete[] m_data;
+      fit_and_allocate();
+    }
+    std::copy(other.m_data, other.m_data + other.m_length, m_data);
     return *this;
   }
 
@@ -90,7 +94,6 @@ public:
     destroy_elements();
     m_length = other.m_length;
     m_pos = other.m_pos;
-
     std::swap(m_chunk_size, other.m_chunk_size);
     std::swap(m_capacity, other.m_capacity);
     std::swap(m_data, other.m_data);
@@ -113,13 +116,13 @@ private:
     m_data = new T[m_capacity];
   }
 
-  /* expands internal data array size by a factor of 2 by allocating new memory
+  /* expands internal data array size by the chuck size
    * and copying data to it */
   void expand() {
     auto old_data = m_data;
     m_capacity += m_chunk_size;
     m_data = new T[m_capacity];
-    std::copy(m_data, m_data + m_pos, old_data);
+    std::copy(old_data, old_data + m_length, m_data);
     delete[] old_data;
   }
 
@@ -144,7 +147,10 @@ public:
 
   /* Inserts element at current position. Expands if necessary. */
   void insert(const T &item) override {
-    assert(m_pos < m_length);
+    if (m_length > 0) {
+      assert(m_pos < m_length);
+    }
+
     if (m_length >= m_capacity) {
       expand();
     }
@@ -172,10 +178,13 @@ public:
     assert(m_pos < m_length);
     T ret = m_data[m_pos];
     // shift data to the left
-    for (size_t i = m_length - 1; i > m_pos; i--) {
-      m_data[i - 1] = m_data[i];
+    for (size_t i = m_pos; i < m_length - 1; i++) {
+      m_data[i] = m_data[i + 1];
     }
     m_length--;
+    if (m_pos == m_length && m_pos > 0) {
+      m_pos--;
+    }
     return ret;
   }
 
@@ -224,7 +233,7 @@ public:
 
   /* Search for an item in the list, returns npos ( (size_t) -1 ) if not found.
    */
-  size_t search(const T &item) const override {
+  size_t Search(const T &item) const override {
     for (size_t i = 0; i < m_length; i++) {
       if (m_data[i] == item) {
         return i;

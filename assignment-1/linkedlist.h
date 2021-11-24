@@ -225,8 +225,8 @@ public:
     m_length++;
   }
 
-  /* Remove the current item and return it. */
-  T remove(const T &item) override {
+  /* Remove the current item and return the value. */
+  T remove() override {
     check_state();
     // list is empty if head->next is null
     if (m_head->next == nullptr) {
@@ -244,6 +244,11 @@ public:
     delete del_node;
 
     m_length--;
+
+    if(m_curr == m_tail){
+      prev();
+      m_tail = m_curr;
+    }
     return del_val;
   }
 
@@ -329,7 +334,7 @@ public:
   /* Return the current element. */
   inline T getValue() const override {
     check_state();
-    // list is empty if m_tail is null
+    // list is empty if no node follows head
     if (m_head->next == nullptr) {
       assert(m_length == 0);
       throw std::runtime_error(
@@ -342,7 +347,7 @@ public:
 
   /* Search for an item in the list, returns npos ( (size_t) -1 ) if not found.
    */
-  size_t search(const T &item) const override {
+  size_t Search(const T &item) const override {
     node *p = m_head;
     size_t i = 0;
     while (i < m_length) {
