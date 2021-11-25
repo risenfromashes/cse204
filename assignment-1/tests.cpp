@@ -11,6 +11,11 @@ TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
     CHECK(empty_list.length() == 0);
     CHECK(empty_list.currPos() == 0);
 
+    empty_list.moveToStart();
+    empty_list.moveToEnd();
+
+    CHECK(empty_list.currPos() == 0);
+
     CHECK(cse204::to_string(empty_list) == "<>");
   }
 
@@ -23,6 +28,12 @@ TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
     list.moveToPos(3);
 
     CHECK(cse204::to_string(list) == "<0 1 2 | 3 4>");
+
+    list.moveToEnd();
+    list.remove();
+    CHECK(list.length() == 4);
+    CHECK(list.currPos() == 3);
+    CHECK(cse204::to_string(list) == "<0 1 2 | 3>");
   }
 
   SECTION("Static Array Constructor") {
@@ -35,6 +46,12 @@ TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
     list.moveToPos(2);
 
     CHECK(cse204::to_string(list) == "<0 1 | 2 3 4>");
+
+    list.moveToStart();
+    list.remove();
+    CHECK(list.length() == 4);
+    CHECK(list.currPos() == 0);
+    CHECK(cse204::to_string(list) == "<| 1 2 3 4>");
   }
 
   SECTION("Pointer Array Constructor") {
@@ -48,6 +65,11 @@ TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
 
     CHECK(cse204::to_string(list) == "<0 1 2 3 | 4>");
 
+    list.moveToPos(2);
+    list.remove();
+    CHECK(list.length() == 4);
+    CHECK(list.currPos() == 2);
+    CHECK(cse204::to_string(list) == "<0 1 | 3 4>");
     delete[] data;
   }
 
@@ -61,13 +83,19 @@ TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
     CHECK(list.currPos() == 1);
     CHECK(cse204::to_string(list) == "<0 | 1 2 3 4>");
 
-    CHECK(other.length() == 5);
-    CHECK(other.currPos() == 1);
-    CHECK(cse204::to_string(other) == "<0 | 1 2 3 4>");
+    list.moveToEnd();
+    CHECK(cse204::to_string(list) == "<0 1 2 3 | 4>");
 
     list.append(5);
+    list.moveToEnd();
     CHECK(list.length() == 6);
-    CHECK(cse204::to_string(list) == "<0 | 1 2 3 4 5>");
+    CHECK(list.currPos() == 5);
+    CHECK(cse204::to_string(list) == "<0 1 2 3 4 | 5>");
+
+    list.remove();
+    CHECK(list.length() == 5);
+    CHECK(list.currPos() == 4);
+    CHECK(cse204::to_string(list) == "<0 1 2 3 | 4>");
   }
 
   SECTION("Move Constructor: other list should be empty") {
@@ -77,66 +105,85 @@ TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
     CHECK(list.currPos() == 1);
     CHECK(cse204::to_string(list) == "<0 | 1 2 3 4>");
 
-    CHECK(other.length() == 0);
-    CHECK(other.currPos() == 0);
-    CHECK(cse204::to_string(other) == "<>");
-
     list.append(5);
     CHECK(list.length() == 6);
     CHECK(cse204::to_string(list) == "<0 | 1 2 3 4 5>");
 
-    other.append(5);
-    CHECK(other.length() == 1);
-    CHECK(cse204::to_string(other) == "<| 5>");
+    list.moveToEnd();
+    list.remove();
+    CHECK(list.length() == 5);
+    CHECK(cse204::to_string(list) == "<0 1 2 3 | 4>");
+
+    CHECK(other.length() == 0);
+    CHECK(other.currPos() == 0);
+    CHECK(cse204::to_string(other) == "<>");
+
+    other.append(0);
+    other.append(1);
+    other.append(2);
+    other.moveToEnd();
+
+    CHECK(other.length() == 3);
+    CHECK(other.currPos() == 2);
+
+    other.remove();
+    CHECK(cse204::to_string(other) == "<0 | 1>");
   }
 }
 
-TEST_CASE("Assignment Operators", "[arraylist]") {
-  cse204::arraylist<int> other({0, 1, 2, 3, 4});
-  other.moveToStart();
-
-  cse204::arraylist<int> list;
+TEMPLATE_PRODUCT_TEST_CASE("Assignment Operators", "[arraylist][linkedlist]",
+                           (cse204::arraylist, cse204::linkedlist), (int)) {
+  TestType other({0, 1, 2, 3, 4});
+  other.moveToPos(2);
+  TestType list;
 
   SECTION("Copy Assignment: other list should be unchanged") {
     list = other;
 
     CHECK(list.length() == 5);
-    CHECK(list.currPos() == 0);
-    CHECK(cse204::to_string(list) == "<| 0 1 2 3 4>");
-
-    CHECK(other.length() == 5);
-    CHECK(other.currPos() == 0);
-    CHECK(cse204::to_string(other) == "<| 0 1 2 3 4>");
+    CHECK(list.currPos() == 2);
+    CHECK(cse204::to_string(list) == "<0 1 | 2 3 4>");
 
     list.insert(5);
     CHECK(list.length() == 6);
-    CHECK(cse204::to_string(list) == "<| 5 0 1 2 3 4>");
+    CHECK(cse204::to_string(list) == "<0 1 | 5 2 3 4>");
+
+    list.moveToPos(4);
+    list.remove();
+    CHECK(list.length() == 5);
+    CHECK(list.currPos() == 4);
+    CHECK(cse204::to_string(list) == "<0 1 5 2 | 4>");
   }
 
   SECTION("Move Assignment: other list should be empty") {
-
     list = std::move(other);
-
     CHECK(list.length() == 5);
-    CHECK(list.currPos() == 0);
-    CHECK(cse204::to_string(list) == "<| 0 1 2 3 4>");
+    CHECK(list.currPos() == 2);
+    CHECK(cse204::to_string(list) == "<0 1 | 2 3 4>");
 
     CHECK(other.length() == 0);
     CHECK(other.currPos() == 0);
     CHECK(cse204::to_string(other) == "<>");
 
-    list.append(5);
+    list.moveToPos(3);
+    list.insert(5);
     CHECK(list.length() == 6);
-    CHECK(cse204::to_string(list) == "<| 0 1 2 3 4 5>");
+    CHECK(cse204::to_string(list) == "<0 1 2 | 5 3 4>");
 
-    other.insert(5);
-    CHECK(other.length() == 1);
-    CHECK(cse204::to_string(other) == "<| 5>");
+    other.append(5);
+    other.append(6);
+    other.append(7);
+    other.append(8);
+    other.moveToPos(2);
+    CHECK(other.remove() == 7);
+    CHECK(other.currPos() == 2);
+    CHECK(cse204::to_string(other) == "<5 6 | 8>");
   }
 }
 
-TEST_CASE("List Interface Methods", "[arraylist]") {
-  cse204::arraylist<int> list = {0, 1, 2, 3, 4};
+TEMPLATE_PRODUCT_TEST_CASE("List Interface Methods", "[arraylist][linkedlist]",
+                           (cse204::arraylist, cse204::linkedlist), (int)) {
+  TestType list = {0, 1, 2, 3, 4};
 
   SECTION("1. clear: should empty list, but keep it valid") {
     list.clear();
@@ -215,6 +262,7 @@ TEST_CASE("List Interface Methods", "[arraylist]") {
 
     list.clear();
     list.moveToStart();
+    CHECK(list.currPos() == 0);
     CHECK(cse204::to_string(list) == "<>");
   }
 
@@ -229,6 +277,7 @@ TEST_CASE("List Interface Methods", "[arraylist]") {
 
     list.clear();
     list.moveToEnd();
+    CHECK(list.currPos() == 0);
     CHECK(cse204::to_string(list) == "<>");
   }
 
@@ -247,6 +296,9 @@ TEST_CASE("List Interface Methods", "[arraylist]") {
     list.next();
     list.prev();
     CHECK(list.currPos() == 0);
+    list.clear();
+    list.prev();
+    CHECK(list.currPos() == 0);
   }
 
   SECTION("8. next: should set position one step to the right") {
@@ -261,6 +313,9 @@ TEST_CASE("List Interface Methods", "[arraylist]") {
     list.prev();
     list.next();
     CHECK(list.currPos() == 3);
+    list.clear();
+    list.next();
+    CHECK(list.currPos() == 0);
   }
 
   SECTION("9. length: should return the number of elements") {
@@ -337,8 +392,9 @@ TEST_CASE("List Interface Methods", "[arraylist]") {
   }
 }
 
-TEST_CASE("List of 100 elements", "[arraylist]") {
-  cse204::arraylist<int> list;
+TEMPLATE_PRODUCT_TEST_CASE("List of 100 elements", "[arraylist][linkedlist]",
+                           (cse204::arraylist, cse204::linkedlist), (int)) {
+  TestType list;
   for (int i = 99; i >= 0; i--) {
     list.insert(i);
     list.prev();
@@ -347,14 +403,14 @@ TEST_CASE("List of 100 elements", "[arraylist]") {
   SECTION("Position should be at the start") { REQUIRE(list.currPos() == 0); }
 
   SECTION("Copy constructor should yield an equal list") {
-    cse204::arraylist<int> listb = list;
+    TestType listb = list;
     for (int i = 0; i < 100; i++, listb.next()) {
       REQUIRE(listb.getValue() == i);
     }
   }
 
   SECTION("Copy assignment should yield an equal list") {
-    cse204::arraylist<int> listb = {0, 1, 2};
+    TestType listb = {0, 1, 2};
     listb = list;
     for (int i = 0; i < 100; i++, listb.next()) {
       REQUIRE(listb.getValue() == i);
@@ -363,7 +419,7 @@ TEST_CASE("List of 100 elements", "[arraylist]") {
 
   SECTION("Move constructor should yield a list equal list") {
     list.moveToPos(69);
-    cse204::arraylist<int> listb = std::move(list);
+    TestType listb = std::move(list);
 
     REQUIRE(listb.currPos() == 69);
     REQUIRE(listb.length() == 100);
@@ -375,7 +431,7 @@ TEST_CASE("List of 100 elements", "[arraylist]") {
 
   SECTION("Move assignment should yield a list equal list") {
     list.moveToPos(69);
-    cse204::arraylist<int> listb = {0, 1, 2, 3, 4};
+    TestType listb = {0, 1, 2, 3, 4};
     listb = std::move(list);
 
     REQUIRE(listb.currPos() == 69);
@@ -397,7 +453,7 @@ TEST_CASE("List of 100 elements", "[arraylist]") {
   }
 
   SECTION("Append should yield same result") {
-    cse204::arraylist<int> list2;
+    TestType list2;
     for (int i = 0; i < 100; i++) {
       list2.append(i);
       list2.moveToPos(i);
@@ -443,10 +499,11 @@ TEST_CASE("List of 100 elements", "[arraylist]") {
   }
 
   SECTION("Removing from end should set back position correctly") {
-    list.moveToEnd();
+    TestType listb = std::move(list);
+    listb.moveToEnd();
     for (int i = 99; i >= 0; i--) {
-      REQUIRE(list.currPos() == i);
-      REQUIRE(list.remove() == i);
+      REQUIRE(listb.currPos() == i);
+      REQUIRE(listb.remove() == i);
     }
   }
 

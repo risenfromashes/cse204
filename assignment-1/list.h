@@ -37,7 +37,7 @@ std::ostream &operator<<(std::ostream &os, list<T> &list) {
   os << '<';
   if (list.length() > 0) {
 
-    size_t prev_pos = list.currPos();
+    const size_t prev_pos = list.currPos();
     for (list.moveToStart();; list.next()) {
       if (prev_pos == list.currPos()) {
         os << "| ";

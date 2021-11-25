@@ -20,11 +20,23 @@ template <typename T> class arraylist : public list<T> {
 
   T *m_data;
 
+/* check validity of state */
+#define CHECK_STATE()                                                          \
+  if (m_length > 0) {                                                          \
+    assert(m_length <= m_capacity);                                            \
+    assert(m_pos < m_length);                                                  \
+    assert(m_data);                                                            \
+  } else {                                                                     \
+    assert(m_pos == 0);                                                        \
+  }
+
 public:
   /* creates empty list */
   arraylist(size_t chunk_size = k_default_chunk_size)
       : m_chunk_size(k_default_chunk_size), m_capacity(m_chunk_size),
-        m_length(0), m_pos(0), m_data(new T[m_capacity]) {}
+        m_length(0), m_pos(0), m_data(new T[m_capacity]) {
+          CHECK_STATE();
+        }
 
   /* Create list from initializer list */
   arraylist(std::initializer_list<T> items,
@@ -33,6 +45,7 @@ public:
         m_length(items.size()), m_pos(0) {
     fit_and_allocate();
     std::copy(items.begin(), items.end(), m_data);
+    CHECK_STATE();
   }
   /* Creates list with data from static array */
   template <size_t N>
@@ -41,6 +54,7 @@ public:
         m_pos(0) {
     fit_and_allocate();
     std::copy(items, items + N, m_data);
+    CHECK_STATE();
   }
 
   /* creates list with pointer data */
@@ -50,6 +64,7 @@ public:
         m_pos(0) {
     fit_and_allocate();
     std::copy(items, items + num_items, m_data);
+    CHECK_STATE();
   }
 
   /* copy constructor: copies elements from other list */
@@ -58,6 +73,7 @@ public:
         m_length(other.m_length), m_pos(other.m_pos),
         m_data(new T[m_capacity]) {
     std::copy(other.m_data, other.m_data + other.m_length, m_data);
+    CHECK_STATE();
   }
 
   /* move constructor: steals elements from other list */
@@ -70,11 +86,12 @@ public:
     other.m_length = 0;
     other.m_pos = 0;
     other.m_data = nullptr;
+    CHECK_STATE();
   }
 
   /* copy assignment: copies elements from other list */
   arraylist<T> &operator=(const arraylist<T> &other) {
-    if(this == &other){
+    if (this == &other) {
       return *this;
     }
     destroy_elements();
@@ -85,6 +102,8 @@ public:
       fit_and_allocate();
     }
     std::copy(other.m_data, other.m_data + other.m_length, m_data);
+
+    CHECK_STATE();
     return *this;
   }
 
@@ -98,6 +117,8 @@ public:
     std::swap(m_capacity, other.m_capacity);
     std::swap(m_data, other.m_data);
     other.m_pos = other.m_length = 0;
+
+    CHECK_STATE();
     return *this;
   }
 
@@ -119,6 +140,9 @@ private:
   /* expands internal data array size by the chuck size
    * and copying data to it */
   void expand() {
+    if (m_chunk_size == 0) {
+      m_chunk_size = k_default_chunk_size;
+    }
     auto old_data = m_data;
     m_capacity += m_chunk_size;
     m_data = new T[m_capacity];
@@ -141,15 +165,15 @@ public:
   /* Clears list, destroying all elements and emptying list. Leaves capacity
    * unchanged. */
   void clear() override {
+    CHECK_STATE();
+
     destroy_elements();
     m_pos = m_length = 0;
   }
 
   /* Inserts element at current position. Expands if necessary. */
   void insert(const T &item) override {
-    if (m_length > 0) {
-      assert(m_pos < m_length);
-    }
+    CHECK_STATE();
 
     if (m_length >= m_capacity) {
       expand();
@@ -164,6 +188,8 @@ public:
 
   /* Appends an element at the end of the list. Expands if necessary. */
   void append(const T &item) override {
+    CHECK_STATE();
+
     if (m_length >= m_capacity) {
       expand();
     }
@@ -172,9 +198,12 @@ public:
 
   /* Remove element at current position and return it. */
   T remove() override {
+    CHECK_STATE();
+
     if (m_length == 0) {
       throw std::runtime_error("Attempt to remove from an empty list.");
     }
+
     assert(m_pos < m_length);
     T ret = m_data[m_pos];
     // shift data to the left
@@ -189,13 +218,22 @@ public:
   }
 
   /* Set the current position at the start of the list. */
-  inline void moveToStart() override { m_pos = 0; }
+  inline void moveToStart() override {
+    CHECK_STATE();
+    m_pos = 0;
+  }
 
   /* Set the current position at the end of the list. */
-  inline void moveToEnd() override { m_pos = m_length - 1; }
+  inline void moveToEnd() override {
+    CHECK_STATE();
+    if (m_length) {
+      m_pos = m_length - 1;
+    }
+  }
 
   /* Move the current position one step left unless already at the beginning. */
   inline void prev() override {
+    CHECK_STATE();
     if (m_pos > 0) {
       m_pos--;
     }
@@ -203,19 +241,30 @@ public:
 
   /* Move the current position one step right unless already at the end. */
   inline void next() override {
-    if (m_pos < m_length - 1) {
+    CHECK_STATE();
+    if (m_length > 0 && m_pos < m_length - 1) {
       m_pos++;
     }
   }
 
   /* Return the number of items in the list. */
-  inline size_t length() const override { return m_length; }
+  inline size_t length() const override {
+    CHECK_STATE();
+    return m_length;
+  }
 
   /* Return the current position of the list. */
-  inline size_t currPos() const override { return m_pos; }
+  inline size_t currPos() const override {
+    CHECK_STATE();
+    if (m_length) {
+      assert(m_pos < m_length);
+    }
+    return m_pos;
+  }
 
   /* Set current position. */
   inline void moveToPos(size_t pos) override {
+    CHECK_STATE();
     if (pos >= m_length) {
       throw std::runtime_error(
           "Attempt to move to position beyond the length of the list.");
@@ -225,6 +274,7 @@ public:
 
   /* Return the value of the current element */
   inline T getValue() const override {
+    CHECK_STATE();
     if (m_length == 0) {
       throw std::runtime_error("Attempting to access element from empty list.");
     }
@@ -241,6 +291,7 @@ public:
     }
     return npos;
   }
+#undef CHECK_STATE
 };
 
 } // namespace cse204

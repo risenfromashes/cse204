@@ -32,17 +32,41 @@ template <typename T> class linkedlist : public list<T> {
   size_t m_length;
   size_t m_pos;
 
+/* Run some assertions to check validity of state. */
+#define CHECK_STATE()                                                          \
+  assert(m_curr &&m_tail);                                                     \
+  if (m_length == 0) {                                                         \
+    assert(m_head->next == nullptr);                                           \
+  }                                                                            \
+  if (m_length <= 1) {                                                         \
+    assert(m_head == m_tail);                                                  \
+    assert(m_head == m_curr);                                                  \
+    assert(m_pos == 0);                                                        \
+  } else if (m_curr == m_tail) {                                               \
+    assert(m_pos == (m_length - 1));                                           \
+  }                                                                            \
+  if (m_length > 0) {                                                          \
+    assert(m_curr && m_curr->next);                                            \
+    assert(m_head->next);                                                      \
+    assert(m_tail->next);                                                      \
+    assert(m_tail->next->next == nullptr);                                     \
+    assert(m_pos < m_length);                                                  \
+  }
+
 public:
   /* Create empty list. */
   linkedlist()
-      : m_head(new node(nullptr)), m_tail(m_head), m_curr(nullptr), m_length(0),
-        m_pos(0) {}
+      : m_head(new node(nullptr)), m_tail(m_head), m_curr(m_head), m_length(0),
+        m_pos(0) {
+    CHECK_STATE();
+  }
 
   /* Create list from initialiser list */
   linkedlist(std::initializer_list<T> items) : linkedlist() {
     for (const T &item : items) {
       append(item);
     }
+    CHECK_STATE();
   }
 
   /* Createl ist with data from static array */
@@ -50,6 +74,7 @@ public:
     for (size_t i = 0; i < N; i++) {
       append(items[i]);
     }
+    CHECK_STATE();
   }
 
   /* creates list with pointer data */
@@ -62,16 +87,17 @@ public:
   /* Copy construct: copies elements from another list */
   linkedlist(const linkedlist<T> &other) : m_head(new node(nullptr)) {
     copy_from(other);
+    CHECK_STATE();
   }
 
   /* Move constructor: steals elements from another list */
   linkedlist(linkedlist<T> &&other)
-      : m_head(new node(other.m_head->next)), m_tail(other.m_tail),
-        m_curr(other.m_curr), m_length(other.m_length), m_pos(other.m_pos) {
+      : m_head(other.m_head), m_tail(other.m_tail), m_curr(other.m_curr),
+        m_length(other.m_length), m_pos(other.m_pos) {
     /* Reset moved from linkedlist to initial empty list */
-    other.m_head->next = nullptr;
-    other.m_curr = other.m_tail = other.m_head;
-    m_length = m_pos = 0;
+    other.m_curr = other.m_tail = other.m_head = new node(nullptr);
+    other.m_length = other.m_pos = 0;
+    CHECK_STATE();
   }
 
   /* Copy assignment: copy elements from another list */
@@ -82,6 +108,8 @@ public:
     }
     delete_elements();
     copy_from(other);
+
+    CHECK_STATE();
     return *this;
   }
 
@@ -93,15 +121,18 @@ public:
     }
     // delete current elements and steal everything from other list
     delete_elements();
-    m_head->next = other.m_head->next;
+    // swap the head sentinel nodes as well
+    std::swap(m_head, other.m_head);
     m_tail = other.m_tail;
     m_curr = other.m_curr;
     m_length = other.m_length;
     m_pos = other.m_pos;
     // reset other list
     other.m_head->next = nullptr;
-    other.m_curr = other.m_tail = m_head;
-    m_length = m_pos = 0;
+    other.m_curr = other.m_tail = other.m_head;
+    other.m_length = other.m_pos = 0;
+
+    CHECK_STATE();
     return *this;
   }
 
@@ -127,7 +158,7 @@ private:
   /* Assuming the list is cleared and do not have dangling resources, copy
    * elements from other list */
   void copy_from(const linkedlist<T> &other) {
-    m_pos = 0;
+    m_pos = other.m_pos;
     m_length = other.m_length;
     // assume the other list may be empty at this point
     m_head->next = nullptr;
@@ -140,12 +171,11 @@ private:
     node *old_node = other.m_head;
     node *new_node = m_head;
 
+    size_t i = 0;
     while (old_node->next) {
       // increment m_pos until we create current element
-      if (m_pos == other.m_pos) {
+      if (i == m_pos) {
         m_curr = new_node;
-      } else if (m_pos < other.m_pos) {
-        m_pos++;
       }
       // new_node is the counterpart of old_node at this point
       if (old_node->next->next == nullptr) {
@@ -153,28 +183,15 @@ private:
         m_tail = new_node;
       }
 
+      old_node = old_node->next;
       new_node->next = new node(old_node->item);
       new_node = new_node->next;
-    }
-  }
 
-  /* Run some assertions to check validity of state. */
-  inline void check_state() {
-    assert(m_curr && m_tail);
-    if (m_length == 0) {
-      assert(m_head->next == nullptr);
+      i++;
     }
-    if (m_length <= 1) {
-      assert(m_head == m_tail);
-      assert(m_head == m_curr);
-      assert(m_pos == 0);
-    }
-    if (m_length > 0) {
-      assert(m_curr && m_curr->next);
-      assert(m_head->next);
-      assert(m_tail->next);
-      assert(m_tail->next->next == nullptr);
-    }
+
+    assert(m_tail->next == new_node);
+    CHECK_STATE();
   }
 
 public:
@@ -182,6 +199,8 @@ public:
 
   /* Clear contents from the list, making it empty */
   void clear() override {
+    CHECK_STATE();
+
     delete_elements();
     // reset everything
     m_head->next = nullptr;
@@ -192,7 +211,7 @@ public:
 
   /* Insert an item at the current location of the list. */
   void insert(const T &item) override {
-    check_state();
+    CHECK_STATE();
 
     node *new_node = new node(item);
     new_node->next = m_curr->next;
@@ -209,7 +228,7 @@ public:
 
   /* Append an item at the end of list. */
   void append(const T &item) override {
-    check_state();
+    CHECK_STATE();
 
     node *new_node = new node(item, nullptr);
     // if list is not empty, it will have one node after tail
@@ -220,6 +239,7 @@ public:
     } else {
       // if list is empty head, tail and curr wouldn't change
       assert(m_length == 0);
+      assert(m_head == m_tail);
       m_head->next = new_node;
     }
     m_length++;
@@ -227,7 +247,7 @@ public:
 
   /* Remove the current item and return the value. */
   T remove() override {
-    check_state();
+    CHECK_STATE();
     // list is empty if head->next is null
     if (m_head->next == nullptr) {
       assert(m_length == 0);
@@ -243,18 +263,31 @@ public:
 
     delete del_node;
 
-    m_length--;
-
-    if(m_curr == m_tail){
-      prev();
-      m_tail = m_curr;
+    if (m_length > 1) {
+      // the edge cases: tail being deleted or the need to shift back can only
+      // happen if length > 1, because otherwise head == tail == curr anyway.
+      if (m_curr == m_tail) {
+        // deleted the one node after tail, have to shift back
+        node *p = m_head;
+        while (p->next != m_curr) {
+          p = p->next;
+        }
+        m_tail = m_curr = p;
+        m_pos--;
+      } else if (del_node == m_tail) {
+        // [curr] -> [tail (x)] -> [last node] -> null
+        // deleted the tail
+        m_tail = m_curr;
+      }
     }
+
+    m_length--;
     return del_val;
   }
 
   /* Set the current position to the start of the list. */
   inline void moveToStart() override {
-    check_state();
+    CHECK_STATE();
     // m_head sentinel node indicates position is before head
     m_curr = m_head;
     m_pos = 0;
@@ -262,17 +295,20 @@ public:
 
   /* Set the current position to the end of the list. */
   inline void moveToEnd() override {
-    check_state();
-    // second to last node indicates position is before the last node, which is
-    // the END
-    m_curr = m_tail;
-    m_pos = m_length;
+    CHECK_STATE();
+    // nothing to do if length == 0
+    if (m_length > 0) {
+      // second to last node indicates position is before the last node, which
+      // is the END
+      m_curr = m_tail;
+      m_pos = m_length - 1;
+    }
   }
 
   /* Move the current position one step left, unless already at the beginning.
    */
   void prev() override {
-    check_state();
+    CHECK_STATE();
 
     if (m_curr == m_head) {
       // nothing to do if already at the beginning
@@ -280,7 +316,7 @@ public:
       return;
     }
     // list must not be empty if m_curr is not at the beginning
-    assert(m_length > 0);
+    assert(m_length > 0 && m_pos > 0);
 
     // since its a singly linked list, have to iterate from start to get to
     // previous node
@@ -295,11 +331,10 @@ public:
 
   /* Move the current position one step right, unless already at the end */
   inline void next() override {
-    check_state();
+    CHECK_STATE();
 
     if (m_curr == m_tail) {
       // already at the end, nothing to do
-      assert(m_pos == m_length - 1);
       return;
     }
 
@@ -308,17 +343,20 @@ public:
   }
 
   /* Return the number of elements in the list. */
-  inline size_t length() const override { return m_length; }
+  inline size_t length() const override {
+    CHECK_STATE();
+    return m_length;
+  }
 
   /* Return the position of the current element. */
   inline size_t currPos() const override {
-    assert(m_pos < m_length);
+    CHECK_STATE();
     return m_pos;
   }
 
   /* Set current position. */
   void moveToPos(size_t pos) override {
-    check_state();
+    CHECK_STATE();
 
     if (pos >= m_length) {
       throw std::runtime_error(
@@ -333,7 +371,7 @@ public:
 
   /* Return the current element. */
   inline T getValue() const override {
-    check_state();
+    CHECK_STATE();
     // list is empty if no node follows head
     if (m_head->next == nullptr) {
       assert(m_length == 0);
@@ -360,5 +398,8 @@ public:
     }
     return npos;
   }
+
+#undef CHECK_STATE
 };
+
 } // namespace cse204
