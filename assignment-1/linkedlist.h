@@ -7,10 +7,10 @@
 
 namespace cse204 {
 
-template <typename T> class linkedlist : public list<T> {
+template <typename T> class LinkedList : public List<T> {
 
-  using typename list<T>::size_t;
-  using list<T>::npos;
+  using typename List<T>::size_t;
+  using List<T>::npos;
 
   struct node {
     T item;
@@ -55,14 +55,14 @@ template <typename T> class linkedlist : public list<T> {
 
 public:
   /* Create empty list. */
-  linkedlist()
+  LinkedList()
       : m_head(new node(nullptr)), m_tail(m_head), m_curr(m_head), m_length(0),
         m_pos(0) {
     CHECK_STATE();
   }
 
   /* Create list from initialiser list */
-  linkedlist(std::initializer_list<T> items) : linkedlist() {
+  LinkedList(std::initializer_list<T> items) : LinkedList() {
     for (const T &item : items) {
       append(item);
     }
@@ -70,7 +70,7 @@ public:
   }
 
   /* Createl ist with data from static array */
-  template <size_t N> linkedlist(T const (&items)[N]) : linkedlist() {
+  template <size_t N> LinkedList(T const (&items)[N]) : LinkedList() {
     for (size_t i = 0; i < N; i++) {
       append(items[i]);
     }
@@ -78,20 +78,20 @@ public:
   }
 
   /* creates list with pointer data */
-  linkedlist(size_t num_items, T const *items) : linkedlist() {
+  LinkedList(size_t num_items, T const *items) : LinkedList() {
     for (size_t i = 0; i < num_items; i++) {
       append(items[i]);
     }
   }
 
   /* Copy construct: copies elements from another list */
-  linkedlist(const linkedlist<T> &other) : m_head(new node(nullptr)) {
+  LinkedList(const LinkedList<T> &other) : m_head(new node(nullptr)) {
     copy_from(other);
     CHECK_STATE();
   }
 
   /* Move constructor: steals elements from another list */
-  linkedlist(linkedlist<T> &&other)
+  LinkedList(LinkedList<T> &&other)
       : m_head(other.m_head), m_tail(other.m_tail), m_curr(other.m_curr),
         m_length(other.m_length), m_pos(other.m_pos) {
     /* Reset moved from linkedlist to initial empty list */
@@ -101,7 +101,7 @@ public:
   }
 
   /* Copy assignment: copy elements from another list */
-  linkedlist &operator=(const linkedlist &other) {
+  LinkedList &operator=(const LinkedList &other) {
     if (this == &other) {
       // to handle self-assignment
       return *this;
@@ -114,7 +114,7 @@ public:
   }
 
   /* Move assignment: steal elements from another list */
-  linkedlist<T> &operator=(linkedlist<T> &&other) {
+  LinkedList<T> &operator=(LinkedList<T> &&other) {
     if (this == &other) {
       // to handle self-assignment
       return *this;
@@ -137,7 +137,7 @@ public:
   }
 
   /* Destructor */
-  ~linkedlist() {
+  ~LinkedList() {
     delete_elements();
     delete m_head;
   }
@@ -157,7 +157,7 @@ private:
 
   /* Assuming the list is cleared and do not have dangling resources, copy
    * elements from other list */
-  void copy_from(const linkedlist<T> &other) {
+  void copy_from(const LinkedList<T> &other) {
     m_pos = other.m_pos;
     m_length = other.m_length;
     // assume the other list may be empty at this point

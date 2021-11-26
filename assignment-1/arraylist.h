@@ -6,10 +6,10 @@
 #include "list.h"
 
 namespace cse204 {
-template <typename T> class arraylist : public list<T> {
+template <typename T> class ArrayList : public List<T> {
 
-  using typename list<T>::size_t;
-  using list<T>::npos;
+  using typename List<T>::size_t;
+  using List<T>::npos;
 
   static constexpr size_t k_default_chunk_size = 8;
 
@@ -32,14 +32,14 @@ template <typename T> class arraylist : public list<T> {
 
 public:
   /* creates empty list */
-  arraylist(size_t chunk_size = k_default_chunk_size)
+  ArrayList(size_t chunk_size = k_default_chunk_size)
       : m_chunk_size(k_default_chunk_size), m_capacity(m_chunk_size),
         m_length(0), m_pos(0), m_data(new T[m_capacity]) {
           CHECK_STATE();
         }
 
   /* Create list from initializer list */
-  arraylist(std::initializer_list<T> items,
+  ArrayList(std::initializer_list<T> items,
             size_t chunk_size = k_default_chunk_size)
       : m_chunk_size(chunk_size), m_capacity(m_chunk_size),
         m_length(items.size()), m_pos(0) {
@@ -49,7 +49,7 @@ public:
   }
   /* Creates list with data from static array */
   template <size_t N>
-  arraylist(T const (&items)[N], size_t chunk_size = k_default_chunk_size)
+  ArrayList(T const (&items)[N], size_t chunk_size = k_default_chunk_size)
       : m_chunk_size(chunk_size), m_capacity(m_chunk_size), m_length(N),
         m_pos(0) {
     fit_and_allocate();
@@ -58,7 +58,7 @@ public:
   }
 
   /* creates list with pointer data */
-  arraylist(size_t num_items, T const *items,
+  ArrayList(size_t num_items, T const *items,
             size_t chunk_size = k_default_chunk_size)
       : m_chunk_size(chunk_size), m_capacity(m_chunk_size), m_length(num_items),
         m_pos(0) {
@@ -68,7 +68,7 @@ public:
   }
 
   /* copy constructor: copies elements from other list */
-  arraylist(const arraylist<T> &other)
+  ArrayList(const ArrayList<T> &other)
       : m_chunk_size(other.m_chunk_size), m_capacity(other.m_capacity),
         m_length(other.m_length), m_pos(other.m_pos),
         m_data(new T[m_capacity]) {
@@ -77,7 +77,7 @@ public:
   }
 
   /* move constructor: steals elements from other list */
-  arraylist(arraylist<T> &&other)
+  ArrayList(ArrayList<T> &&other)
       : m_chunk_size(other.m_chunk_size), m_capacity(other.m_capacity),
         m_length(other.m_length), m_pos(other.m_pos), m_data(other.m_data) {
     /* Will resize to default capacity if inserted again */
@@ -90,7 +90,7 @@ public:
   }
 
   /* copy assignment: copies elements from other list */
-  arraylist<T> &operator=(const arraylist<T> &other) {
+  ArrayList<T> &operator=(const ArrayList<T> &other) {
     if (this == &other) {
       return *this;
     }
@@ -108,7 +108,7 @@ public:
   }
 
   /* move assignment: steals elements from other list */
-  arraylist<T> &operator=(arraylist<T> &&other) {
+  ArrayList<T> &operator=(ArrayList<T> &&other) {
     // exchange data and capacity, but setting other empty
     destroy_elements();
     m_length = other.m_length;
@@ -123,7 +123,7 @@ public:
   }
 
   /* destructor */
-  ~arraylist() { delete[] m_data; }
+  ~ArrayList() { delete[] m_data; }
 
 private:
   /* helper methods */

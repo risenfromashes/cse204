@@ -8,7 +8,7 @@
 namespace cse204 {
 
 /* Abstract list interface */
-template <typename T> class list {
+template <typename T> class List {
 protected:
   typedef std::size_t size_t;
   static const size_t npos = (size_t)-1;
@@ -32,7 +32,7 @@ public:
 
 /* Print a list to output stream */
 template <typename T>
-std::ostream &operator<<(std::ostream &os, list<T> &list) {
+std::ostream &operator<<(std::ostream &os, List<T> &list) {
   // remember current position
   os << '<';
   if (list.length() > 0) {
@@ -57,14 +57,14 @@ std::ostream &operator<<(std::ostream &os, list<T> &list) {
 }
 
 /* Print a list to a string */
-template <typename T> std::string to_string(list<T> &list) {
+template <typename T> std::string to_string(List<T> &list) {
   std::ostringstream oss;
   oss << list;
   return oss.str();
 }
 
 /* Check element-wise equality between lists */
-template <typename T> bool operator==(list<T> &a, list<T> &b) {
+template <typename T> bool operator==(List<T> &a, List<T> &b) {
   if (a.length() != b.length()) {
     return false;
   }

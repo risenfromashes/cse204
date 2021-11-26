@@ -3,8 +3,8 @@
 #include <catch2/catch.hpp>
 #include <stdexcept>
 
-TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
-                           (cse204::arraylist, cse204::linkedlist), int) {
+TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[ArrayList][LinkedList]",
+                           (cse204::ArrayList, cse204::LinkedList), int) {
   SECTION("Emtpy List Constructor") {
     TestType empty_list;
 
@@ -131,8 +131,8 @@ TEMPLATE_PRODUCT_TEST_CASE("List constructors", "[arraylist][linkedlist]",
   }
 }
 
-TEMPLATE_PRODUCT_TEST_CASE("Assignment Operators", "[arraylist][linkedlist]",
-                           (cse204::arraylist, cse204::linkedlist), (int)) {
+TEMPLATE_PRODUCT_TEST_CASE("Assignment Operators", "[ArrayList][LinkedList]",
+                           (cse204::ArrayList, cse204::LinkedList), (int)) {
   TestType other({0, 1, 2, 3, 4});
   other.moveToPos(2);
   TestType list;
@@ -181,8 +181,8 @@ TEMPLATE_PRODUCT_TEST_CASE("Assignment Operators", "[arraylist][linkedlist]",
   }
 }
 
-TEMPLATE_PRODUCT_TEST_CASE("List Interface Methods", "[arraylist][linkedlist]",
-                           (cse204::arraylist, cse204::linkedlist), (int)) {
+TEMPLATE_PRODUCT_TEST_CASE("List Interface Methods", "[ArrayList][LinkedList]",
+                           (cse204::ArrayList, cse204::LinkedList), (int)) {
   TestType list = {0, 1, 2, 3, 4};
 
   SECTION("1. clear: should empty list, but keep it valid") {
@@ -392,8 +392,8 @@ TEMPLATE_PRODUCT_TEST_CASE("List Interface Methods", "[arraylist][linkedlist]",
   }
 }
 
-TEMPLATE_PRODUCT_TEST_CASE("List of 100 elements", "[arraylist][linkedlist]",
-                           (cse204::arraylist, cse204::linkedlist), (int)) {
+TEMPLATE_PRODUCT_TEST_CASE("List of 100 elements", "[ArrayList][LinkedList]",
+                           (cse204::ArrayList, cse204::LinkedList), (int)) {
   TestType list;
   for (int i = 99; i >= 0; i--) {
     list.insert(i);

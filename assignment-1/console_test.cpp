@@ -5,24 +5,17 @@
 #include "arraylist.h"
 #include "linkedlist.h"
 
-template <typename T, std::derived_from<cse204::list<T>> list_type>
-class ListTester;
+#include "console_helper.h"
 
-// deduction guides
-template <template <typename> typename R, typename T>
-ListTester(const R<T> &) -> ListTester<T, R<T>>;
+#include <vector>
 
-template <template <typename> typename R, typename T>
-ListTester(R<T> &&) -> ListTester<T, R<T>>;
-
-template <typename T, std::derived_from<cse204::list<T>> list_type>
+template <template <typename> typename list_type>
+requires ImplementsList<list_type>
 class ListTester {
-private:
-  list_type m_list;
+  list_type<int> m_list;
 
 public:
-  ListTester(list_type &&list) : m_list(list) {}
-  ListTester(const list_type &list) : m_list(list) {}
+  ListTester(list_type<int> &&list) : m_list(list) {}
 
   int processInput(int a, int b) {
     switch (a) {
@@ -80,39 +73,25 @@ public:
 };
 
 int main(int argc, char **argv) {
-  // select list type
-  bool ll = argc > 1 && (std::strcmp(argv[1], "-ll") == 0 ||
-                         std::strcmp(argv[1], "--linkedlist") == 0);
-  bool arr = argc > 1 && (std::strcmp(argv[1], "-arr") == 0 ||
-                          std::strcmp(argv[1], "--arraylist") == 0);
-
-  if (!(ll || arr)) {
-    // show help
-    std::cout << "Please provide one of the following flags:" << std::endl
-              << std::endl
-              << "-arr, --arraylist\tTo test the array based "
-                 "implementation of the list interface"
-              << std::endl
-              << "-ll, --linkedlist\tTo test the linked list "
-                 "implementation of the list interface"
-              << std::endl
-              << std::endl;
-    return 0;
+  auto list_type = selectListImplementation(argc, argv);
+  if (list_type.has_value()) {
+    // input data
+    int K, X;
+    std::cin >> K >> X;
+    int data[K];
+    for (int i = 0; i < K; i++) {
+      std::cin >> data[i];
+    }
+    // select list
+    switch (list_type.value()) {
+    case ListImplementationType::LINKED_LIST:
+      ListTester(cse204::LinkedList<int>(K, data)).test();
+      break;
+    case ListImplementationType::ARRAY_LIST:
+      ListTester(cse204::ArrayList<int>(K, data, X)).test();
+      break;
+    }
   }
 
-  // input data
-  int K, X;
-  std::cin >> K >> X;
-  int data[K];
-  for (int i = 0; i < K; i++) {
-    std::cin >> data[i];
-  }
-
-  // test list
-  if (ll) {
-    ListTester(cse204::linkedlist<int>(K, data)).test();
-  } else if (arr) {
-    ListTester(cse204::arraylist<int>(K, data, X)).test();
-  }
   return 0;
 }
