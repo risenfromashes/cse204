@@ -51,7 +51,6 @@ public:
         m_data(new T[m_capacity]),
         m_owns_memory(true),
         m_dir(other.m_dir) {
-    static_assert(std::copyable<T>);
     copy_from(other);
   }
 
