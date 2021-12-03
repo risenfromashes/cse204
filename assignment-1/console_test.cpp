@@ -7,8 +7,6 @@
 
 #include "console_helper.h"
 
-#include <vector>
-
 template <template <typename> typename list_type>
 requires ImplementsList<list_type>
 class ListTester {

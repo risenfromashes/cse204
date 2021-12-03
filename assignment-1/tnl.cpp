@@ -9,7 +9,7 @@ class TNLStop {
 
   enum StopFlagBits { RICKSHAW = 1, BUS = 1 << 1, TRAIN = 1 << 2 };
 
-  uint8_t m_stop_flags;
+  uint8_t m_stop_flags = 0;
 
   void set(StopFlagBits bit, bool val) {
     if (val) {

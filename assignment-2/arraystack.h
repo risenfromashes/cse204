@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <concepts>
 #include <memory>
-#include <vector>
 
 #include "stack.h"
 
