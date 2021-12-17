@@ -8,6 +8,7 @@
 namespace cse204 {
 
 enum class TraversalOrder { PRE_ORDER, POST_ORDER, IN_ORDER };
+
 // empty value type
 struct empty_t {};
 
@@ -41,7 +42,6 @@ private:
   allocator_type m_allocator;
 
   Node *m_root;
-  size_t m_size;
 
   /* helper methods */
 
@@ -95,7 +95,6 @@ private:
 
   /* insert new node into the tree */
   void insert_impl(Node *node, Node *&curr) {
-    // find prospective parent
     if (!curr) {
       curr = node;
     } else if (node->key <= curr->key) {
@@ -133,6 +132,7 @@ private:
     return d;
   }
 
+  /* Traverse tree in specified order */
   void foreach_impl(const std::function<void(Node *)> &callable,
                     TraversalOrder order, Node *root) const {
     if (!root) {
@@ -158,6 +158,7 @@ private:
     }
   }
 
+  /* prints tree to output stream */
   void print_tree_impl(std::ostream &os, Node *root) const {
     if (!root) {
       return;
@@ -176,6 +177,7 @@ private:
     }
   }
 
+  /* deallocates and destroys all nodes of tree */
   void delete_tree(Node *node) {
     if (node) {
       delete_tree(node->left);
@@ -185,16 +187,51 @@ private:
     }
   }
 
+  /* allocates and creates copy of tree */
+  void copy_tree(Node *node, Node *&curr) {
+    if (node) {
+      curr = allocator_traits::allocate(m_allocator, 1);
+      if constexpr (std::same_as<V, empty_t>) {
+        allocator_traits::construct(m_allocator, curr, node->key);
+      } else {
+        allocator_traits::construct(m_allocator, curr, node->key, node->value);
+      }
+      copy_tree(node->left, curr->left);
+      copy_tree(node->right, curr->right);
+    }
+  }
+
 public:
-  BSTree() : m_root(nullptr), m_size(0) {}
+  /* Construct empty tree */
+  BSTree() : m_root(nullptr) {}
   ~BSTree() { delete_tree(m_root); }
 
-  // delete other constructors and assignments for now
-  BSTree(const BSTree &) = delete;
-  BSTree(BSTree &&) = delete;
+  /* Copy Construct tree from other tree*/
+  BSTree(const BSTree &other) : m_root(nullptr) {
+    copy_tree(other.m_root, m_root);
+  }
 
-  BSTree &operator=(const BSTree &) = delete;
-  BSTree &operator=(BSTree &&) = delete;
+  /* Move Construct tree from other tree*/
+  BSTree(BSTree &&other) : m_root(other.m_root) { other.m_root = nullptr; }
+
+  BSTree &operator=(const BSTree &other) {
+    if (this == &other) {
+      return *this;
+    }
+    delete_tree(m_root);
+    copy_tree(other.m_root, m_root);
+    return *this;
+  }
+
+  BSTree &operator=(BSTree &&other) {
+    if (this == &other) {
+      return *this;
+    }
+    delete_tree(m_root);
+    m_root = other.m_root;
+    other.m_root = nullptr;
+    return *this;
+  }
 
   /* Insert overloads */
 
@@ -254,8 +291,10 @@ public:
     return r;
   }
 
+  /* check if tree contains entry with given key */
   bool find(const K &key) const { return find_node_impl(key); }
 
+  /* Traverse tree in specified order */
   BSTree &foreach (std::function<void(K)> &&callable,
                    TraversalOrder order = TraversalOrder::IN_ORDER) requires
       std::same_as<V, empty_t> {
@@ -264,12 +303,14 @@ public:
     return *this;
   }
 
+  /* Traverse tree in specified order */
   const BSTree &foreach (std::function<void(K)> &&callable,
                          TraversalOrder order = TraversalOrder::IN_ORDER)
       const requires std::same_as<V, empty_t> {
     return foreach (*this, order);
   }
 
+  /* Traverse tree in specified order */
   BSTree &foreach (
       std::function<void(K, V)> &&callable,
       TraversalOrder order =
@@ -279,16 +320,19 @@ public:
     return *this;
   }
 
+  /* Traverse tree in specified order */
   const BSTree &foreach (std::function<void(K, V)> &&callable,
                          TraversalOrder order = TraversalOrder::IN_ORDER) const
       requires(!std::same_as<V, empty_t>) {
     return foreach (*this, order);
   }
 
+  /* print to output stream */
   void printTree(std::ostream &os = std::cout) const {
     print_tree_impl(os, m_root);
   }
 
+  /* print to output stream */
   friend std::ostream &operator<<(std::ostream &os, const BSTree<K, V> &tree) {
     tree.printTree(os);
     return os;
