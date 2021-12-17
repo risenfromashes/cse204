@@ -17,7 +17,7 @@ class BSTree {
 
 protected:
   struct Node {
-    const K key;
+    K key;
     V value;
 
     Node *left = nullptr;
@@ -74,42 +74,34 @@ private:
 
   Node *next(Node *node) const { return find_min(node->right); }
 
-  /* Find and return node containing key, return the parent of the empty leave
-   * where the node would be otherwise */
+  /* Find and return node containing key */
   Node *find_node_impl(const K &key) const {
     if (!m_root) {
       return nullptr;
     }
 
     auto *n = m_root;
-    while (true) {
+    while (n) {
       if (key == n->key) {
         return n;
-      } else if (key < n->key && n->left) {
+      } else if (key < n->key) {
         n = n->left;
-      } else if (key > n->key && n->right) {
+      } else if (key > n->key) {
         n = n->right;
-      } else {
-        break;
       }
     }
     return n;
   }
 
   /* insert new node into the tree */
-  void insert_impl(Node *node) {
+  void insert_impl(Node *node, Node *&curr) {
     // find prospective parent
-    auto *p = find_node_impl(node->key);
-    if (p) {
-      if (node->key < p->key) {
-        p->left = node;
-      } else {
-        p->right = node;
-      }
-    } else {
-      // tree is currently empty
-      assert(m_size == 0);
-      m_root = node;
+    if (!curr) {
+      curr = node;
+    } else if (node->key <= curr->key) {
+      insert_impl(node, curr->left);
+    } else if (node->key > curr->key) {
+      insert_impl(node, curr->right);
     }
   }
 
@@ -126,13 +118,13 @@ private:
 
     Node *d = curr;
     if (curr->left && curr->right) { // if both children exist
-      // bring immediate previous node at the root of current subtree
+      // bring data from previous node at the root of current subtree
       Node *n = find_max(curr->left);
-      // delete from original position
-      assert(remove_impl(n->key, curr->left) == n);
-      n->left = curr->left;
-      n->right = curr->right;
-      curr = n;
+      // delete a node with that key
+      d = remove_impl(n->key, curr->left);
+      // swap node data
+      std::swap(curr->key, d->key);
+      std::swap(curr->value, d->value);
     } else if (curr->left) {
       curr = curr->left;
     } else {
@@ -196,13 +188,21 @@ private:
 public:
   BSTree() : m_root(nullptr), m_size(0) {}
   ~BSTree() { delete_tree(m_root); }
+
+  // delete other constructors and assignments for now
+  BSTree(const BSTree &) = delete;
+  BSTree(BSTree &&) = delete;
+
+  BSTree &operator=(const BSTree &) = delete;
+  BSTree &operator=(BSTree &&) = delete;
+
   /* Insert overloads */
 
   /* Insert new key into the tree when there is no value type */
   void insert(const K &key) requires std::same_as<V, empty_t> {
     auto *new_node = allocator_traits::allocate(m_allocator, 1);
     allocator_traits::construct(m_allocator, new_node, key);
-    insert_impl(new_node);
+    insert_impl(new_node, m_root);
   }
 
   /* Insert new key into the tree when there is no value type */
@@ -211,7 +211,7 @@ public:
   void insert(R &&key) requires std::same_as<V, empty_t> {
     auto *new_node = allocator_traits::allocate(m_allocator, 1);
     allocator_traits::construct(m_allocator, new_node, std::forward<R>(key));
-    insert_impl(new_node);
+    insert_impl(new_node, m_root);
   }
 
   /* Insert new element */
@@ -219,7 +219,7 @@ public:
               const V &value) requires(!std::same_as<V, empty_t>) {
     auto *new_node = allocator_traits::allocate(m_allocator, 1);
     allocator_traits::construct(m_allocator, new_node, key, value);
-    insert_impl(new_node);
+    insert_impl(new_node, m_root);
   }
 
   /* Insert new element*/
@@ -229,7 +229,7 @@ public:
     auto *new_node = allocator_traits::allocate(m_allocator, 1);
     allocator_traits::construct(m_allocator, new_node, std::forward<T>(key),
                                 std::forward<R>(value));
-    insert_impl(new_node);
+    insert_impl(new_node, m_root);
   }
 
   /* Remove item with given key */
@@ -254,37 +254,40 @@ public:
     return r;
   }
 
-  bool find(const K &key) const {
-    return m_root && find_node_impl(key)->key == key;
-  }
+  bool find(const K &key) const { return find_node_impl(key); }
 
   BSTree &foreach (std::function<void(K)> &&callable,
-                   TraversalOrder order) requires std::same_as<V, empty_t> {
+                   TraversalOrder order = TraversalOrder::IN_ORDER) requires
+      std::same_as<V, empty_t> {
     foreach_impl([&callable](Node *node) { callable(node->key); }, order,
                  m_root);
     return *this;
   }
 
-  const BSTree &foreach (
-      std::function<void(K)> &&callable,
-      TraversalOrder order) const requires std::same_as<V, empty_t> {
+  const BSTree &foreach (std::function<void(K)> &&callable,
+                         TraversalOrder order = TraversalOrder::IN_ORDER)
+      const requires std::same_as<V, empty_t> {
     return foreach (*this, order);
   }
 
-  BSTree &foreach (std::function<void(K, V)> &&callable,
-                   TraversalOrder order) requires(!std::same_as<V, empty_t>) {
+  BSTree &foreach (
+      std::function<void(K, V)> &&callable,
+      TraversalOrder order =
+          TraversalOrder::IN_ORDER) requires(!std::same_as<V, empty_t>) {
     foreach_impl([&callable](Node *node) { callable(node->key, node->value); },
                  order, m_root);
     return *this;
   }
 
   const BSTree &foreach (std::function<void(K, V)> &&callable,
-                         TraversalOrder order) const
+                         TraversalOrder order = TraversalOrder::IN_ORDER) const
       requires(!std::same_as<V, empty_t>) {
     return foreach (*this, order);
   }
 
-  void printTree(std::ostream &os) const { print_tree_impl(os, m_root); }
+  void printTree(std::ostream &os = std::cout) const {
+    print_tree_impl(os, m_root);
+  }
 
   friend std::ostream &operator<<(std::ostream &os, const BSTree<K, V> &tree) {
     tree.printTree(os);
