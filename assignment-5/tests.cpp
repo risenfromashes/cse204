@@ -32,6 +32,17 @@ void test_heap(Heap &heap) {
     REQUIRE(pq.size() == heap.size());
     REQUIRE(pq.top() == heap.top());
   }
+
+  std::vector<int> vec;
+  for (int i = 0; i < 1e6; i++) {
+    vec.push_back(dist(rng));
+  }
+
+  heapsort(vec);
+
+  for (int i = 0; i < vec.size() - 1; i++) {
+    REQUIRE(vec[i] >= vec[i + 1]);
+  }
 }
 
 TEST_CASE("Heap operations", "[BSTree]") {

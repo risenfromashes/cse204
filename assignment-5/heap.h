@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <pthread.h>
 #include <utility>
 #include <vector>
 
@@ -25,33 +26,46 @@ class Heap {
   inline size_t right(size_t i) { return left(i) | 1; }
 
   inline void heapify(size_t p) {
-    assert(p > 0 && p <= m_size);
     size_t l, r, lr;
-    int t = m_array[p];
     while (p) {
       l = left(p);
       r = right(p);
 
       lr = p;
-      if (l <= m_size && m_array[l] > m_array[p]) {
+      if (l <= m_size && m_array[l] > m_array[lr]) {
         lr = l;
       }
-      if (r <= m_size && m_array[r] > m_array[p]) {
+      if (r <= m_size && m_array[r] > m_array[lr]) {
         lr = r;
       }
 
       if (lr != p) {
-        m_array[p] = m_array[lr];
+        std::swap(m_array[p], m_array[lr]);
         p = lr;
       } else {
-        m_array[p] = t;
         break;
       }
     }
   }
 
+  inline bool is_heap(size_t p) {
+    if (p > m_size) {
+      return true;
+    }
+    size_t l = left(p);
+    size_t r = right(p);
+
+    if ((l <= m_size) && (m_array[l] > m_array[p])) {
+      return false;
+    }
+    if (r <= m_size && m_array[r] > m_array[p]) {
+      return false;
+    }
+    return is_heap(left(p)) && is_heap(right(p));
+  }
+
   inline void build_heap() {
-    for (int i = m_size / 2; i >= 1; i--) {
+    for (int i = (m_size / 2); i >= 1; i--) {
       heapify(i);
     }
   }
@@ -104,8 +118,9 @@ public:
     }
 
     int v = m_array[1];
-    m_array[1] = m_array[m_size--];
+    m_array[1] = m_array[m_size];
     heapify(1);
+    m_size--;
     return v;
   }
 
@@ -122,8 +137,8 @@ public:
         m_array(m_allocator.allocate(m_capacity + 1)) {}
 
   Heap(std::vector<int> &vec)
-      : m_capacity(vec.capacity()), m_size(vec.size()), m_array(vec.data() - 1),
-        m_owns_memory(false) {
+      : m_capacity(vec.capacity() - 1), m_size(vec.size()),
+        m_array(vec.data() - 1), m_owns_memory(false) {
     build_heap();
   }
   ~Heap() {
