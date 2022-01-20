@@ -63,18 +63,14 @@ int main(int argc, char **argv) {
             (state.n_roll + 1) < squares[next].n_shortest_path) {
           squares[next] = {state.n_roll + 1, state.board_pos};
 
-          if (!jumps[next]) {
-            bfs_queue.push({state.n_roll + 1, next});
-          } else {
-            while (jumps[next]) { // a ladder or a snake
-              int dest = jumps[next];
-              if ((state.n_roll + 1) < squares[dest].n_shortest_path) {
-                squares[dest] = {state.n_roll + 1, next};
-                bfs_queue.push({state.n_roll + 1, dest});
-              }
-              next = dest;
+          while (jumps[next]) { // a ladder or a snake
+            int dest = jumps[next];
+            if ((state.n_roll + 1) < squares[dest].n_shortest_path) {
+              squares[dest] = {state.n_roll + 1, next};
             }
+            next = dest;
           }
+          bfs_queue.push({state.n_roll + 1, next});
         }
       }
     }

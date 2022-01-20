@@ -46,9 +46,30 @@ int main(int argc, char **argv) {
   std::ifstream f1(args.at("1").data());
   std::ifstream f2(args.at("2").data());
 
-  if (parse(f1) == parse(f2)) {
-    std::cout << "Outputs are compatible" << std::endl;
+  auto r1 = parse(f1);
+  auto r2 = parse(f2);
+  bool all_match = true;
+
+  for (unsigned int i = 0; i < std::min(r1.size(), r2.size()); i++) {
+    if (r1[i] != r2[i]) {
+      if (all_match) {
+        all_match = false;
+      }
+      std::cout << "Testcase " << (i + 1) << " doesn't match. " << std::endl
+                << "Minimum rolls: " << r1[i].min_rolls << " vs "
+                << r2[i].min_rolls << std::endl
+                << "inaccessible squares: " << r1[i].inaccessible_squares.size()
+                << " vs " << r2[i].inaccessible_squares.size() << std::endl;
+    }
+  }
+
+  if (r1.size() != r2.size()) {
+    std::cout << "The number of testcases differ" << std::endl;
   } else {
-    std::cout << "Outputs are not compatible" << std::endl;
+    if (all_match) {
+      std::cout << "Outputs are compatible" << std::endl;
+    } else {
+      std::cout << "Outputs are not compatible" << std::endl;
+    }
   }
 }

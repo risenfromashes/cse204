@@ -6,9 +6,10 @@ parse_console_args(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     if (argv[i][0] == '-') {
       if (i + 1 < argc) {
-        args.emplace(argv[i] + 1 + (argv[i][1] == '-'), argv[i + 1]);
         if (argv[i + 1][0] == '-') {
           args.emplace(argv[i] + 1 + (argv[i][1] == '-'), "true");
+        } else {
+          args.emplace(argv[i] + 1 + (argv[i][1] == '-'), argv[i + 1]);
         }
       } else {
         args.emplace(argv[i] + 1 + (argv[i][1] == '-'), "true");
